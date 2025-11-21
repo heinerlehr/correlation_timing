@@ -1,0 +1,14 @@
+max_lookback_length: 4
+process_by_category: true
+run_hypothesis_1: true
+run_hypothesis_2: false
+fit_distributions: true
+cumulative: false
+max_workers: 10
+save_types: true
+
+hypothesis_1:
+  fn: "${OUTPUTS}/hypothesis_1.png"
+
+hypothesis_2:
+  fn: "${OUTPUTS}/hypothesis_2.png"
