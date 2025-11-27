@@ -13,7 +13,7 @@ from scipy.stats import expon, weibull_min, lognorm
 
 from loguru import logger
 
-from correlation_timing.utils import Result, TypeList
+from ct.utils import Result, TypeList
 
 
 def plot_mixture(data:pd.DataFrame, result: Result, intervals: list[int], interval_labels: list[str], 

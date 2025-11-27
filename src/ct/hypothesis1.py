@@ -12,8 +12,8 @@ from iconfig.iconfig import iConfig
 
 from loguru import logger
 
-from correlation_timing.utils import determine_type, determine_type_by_category
-from correlation_timing.plotting import plot
+from ct.utils import determine_type, determine_type_by_category
+from ct.plotting import plot
 
 
 def analyze_hypothesis1(

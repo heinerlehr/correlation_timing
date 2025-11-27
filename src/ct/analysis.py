@@ -5,7 +5,7 @@ import warnings
 from iconfig.iconfig import iConfig
 from loguru import logger
 
-from correlation_timing.data_preparation import (
+from ct.data_preparation import (
     load_data,
     get_dataset_info,
     order_correlations_by_pairs,
@@ -13,8 +13,8 @@ from correlation_timing.data_preparation import (
     prepare_anomalies,
     create_interval_labels,
 )
-from correlation_timing.hypothesis1 import analyze_hypothesis1
-from correlation_timing.hypothesis2 import analyze_hypothesis2
+from ct.hypothesis1 import analyze_hypothesis1
+from ct.hypothesis2 import analyze_hypothesis2
 
 def run_analysis(
         config: iConfig,

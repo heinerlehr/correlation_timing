@@ -61,24 +61,24 @@ Core dependencies include:
 
 ```bash
 # Basic usage
-python -m correlation_timing.main /path/to/data/directory
+python -m ct.main /path/to/data/directory
 
 # With custom options
-python -m correlation_timing.main /path/to/data/directory \
+python -m ct.main /path/to/data/directory \
     --max-lookback 6 \
     --no-category \
     --skip-h1 \
     --cumulative
 
 # See all options
-python -m correlation_timing.main --help
+python -m ct.main --help
 ```
 
 ### As a Python Module
 
 ```python
 from pathlib import Path
-from correlation_timing.analysis import run_analysis
+from ct.analysis import run_analysis
 
 # Run complete analysis
 results = run_analysis(
@@ -99,9 +99,9 @@ h2_merged = results['hypothesis2']['merged']
 ### Using Individual Components
 
 ```python
-from correlation_timing.data_preparation import load_data, prepare_anomalies, create_interval_labels, get_dataset_info
-from correlation_timing.hypothesis1 import analyze_hypothesis1
-from correlation_timing.hypothesis2 import analyze_hypothesis2
+from ct.data_preparation import load_data, prepare_anomalies, create_interval_labels, get_dataset_info
+from ct.hypothesis1 import analyze_hypothesis1
+from ct.hypothesis2 import analyze_hypothesis2
 
 # Load and prepare data
 df = load_data(Path("/path/to/data"))

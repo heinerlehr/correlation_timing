@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from scipy.stats import expon, weibull_min, lognorm
-from src.correlation_timing.utils import fit_mixture_simple, Result
+from src.ct.utils import fit_mixture_simple, Result
 
 
 def test_fit_mixture_simple_expon():

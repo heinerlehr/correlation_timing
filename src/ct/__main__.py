@@ -14,7 +14,7 @@ from loguru import logger
 
 from iconfig.iconfig import iConfig
 
-from correlation_timing.analysis import run_analysis
+from ct.analysis import run_analysis
 
 def parse_args(config: iConfig) -> argparse.Namespace: 
 
