@@ -12,7 +12,8 @@ from iconfig.iconfig import iConfig
 
 from loguru import logger
 
-from correlation_timing.utils import determine_type, determine_type_by_category, plot
+from correlation_timing.utils import determine_type, determine_type_by_category
+from correlation_timing.plotting import plot
 
 
 def analyze_hypothesis1(
@@ -20,6 +21,7 @@ def analyze_hypothesis1(
     df: pd.DataFrame,
     anomalies: pd.DataFrame,
     max_lookback_length: int,
+    intervals: list[int],
     interval_labels: list[str],
     correlations_ordered: list,
     number_of_plots: int,
@@ -27,7 +29,7 @@ def analyze_hypothesis1(
     process_by_category: bool = True,
     fit_distributions: bool = True,
     cumulative: bool = False
-) -> Tuple[pd.DataFrame, pd.DataFrame, dict | None]:
+) -> Tuple[pd.DataFrame, dict | None]:
     """Analyze Hypothesis 1: Time differences to all correlation factors.
     
     Parameters
@@ -79,16 +81,12 @@ def analyze_hypothesis1(
         # Categorize and count
         merged['DelayInterval'] = pd.cut(
             merged['Delay'], 
-            bins=range(0, max_lookback_length*60+1, 15),
+            bins=intervals,
             labels=interval_labels, 
             right=False
         )
-        result = merged.groupby(['Correlation', 'DelayInterval']).size().reset_index(
-            name='Count'
-        )
     else:
         # Process each category separately
-        results = []
         mergeds = []
         categories = dataset_info['categories']
         
@@ -116,18 +114,13 @@ def analyze_hypothesis1(
             # Categorize and count
             merged['DelayInterval'] = pd.cut(
                 merged['Delay'],
-                bins=range(0, max_lookback_length*60+1, 15),
+                bins=intervals,
                 labels=interval_labels,
                 right=False
             )
             mergeds.append(merged)
-            result_cat = merged.groupby(
-                ['Correlation', 'Category', 'DelayInterval']
-            ).size().reset_index(name='Count')
-            results.append(result_cat)
         
         merged = pd.concat(mergeds, ignore_index=True)
-        result = pd.concat(results, ignore_index=True)
     
     logger.info(f"Found {len(merged)} correlation occurrences")
     
@@ -137,14 +130,12 @@ def analyze_hypothesis1(
     if fit_distributions:
         if process_by_category:
             types = determine_type_by_category(
-                config=config,
                 correlations=correlations_ordered, 
                 corr_data=merged,
                 max_workers=max_workers
             )
         else:
             types = determine_type(
-                config=config,
                 correlations=correlations_ordered, 
                 corr_data=merged,
                 max_workers=max_workers
@@ -153,11 +144,9 @@ def analyze_hypothesis1(
     # Plot results
     fn = config('hypothesis_1.fn', default='hypothesis_1.png')
     max_lookback_length = config('max_lookback_length', default=4)
-    save = config.get('save_types', default=False)
     plot(
-        config=config,
         number_of_plots=number_of_plots,
-        result=result,
+        result=merged,
         df=df,
         correlations=correlations_ordered,
         dataset_info=dataset_info,
@@ -166,7 +155,8 @@ def analyze_hypothesis1(
         cumulative=cumulative,
         fn = fn,
         max_lookback_length=max_lookback_length,
-        save=save,
+        intervals = intervals,
+        interval_labels=interval_labels,
     )
     
-    return merged, result, types
+    return merged, types

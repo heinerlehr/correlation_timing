@@ -16,6 +16,7 @@ config/flockinfo.json
 data/
 inference/
 models/
+inputs/
 outputs/
 outputs_processed/
 outputs_errors/

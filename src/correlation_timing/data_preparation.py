@@ -41,7 +41,6 @@ def load_data(srcdir: Path) -> pd.DataFrame:
     
     return df
 
-
 def get_dataset_info(df: pd.DataFrame) -> dict:
     """Extract basic information about the dataset.
     
@@ -184,8 +183,7 @@ def prepare_anomalies(
     
     return anomalies, earliest_time
 
-
-def create_interval_labels(max_lookback_length: int) -> list[str]:
+def create_interval_labels(max_lookback_length: int) -> Tuple[list[int], list[str]]:
     """Create time interval labels for categorization.
     
     Parameters
@@ -195,8 +193,11 @@ def create_interval_labels(max_lookback_length: int) -> list[str]:
         
     Returns
     -------
-    list[str]
-        List of interval labels like "0-15min", "15-30min", etc.
+    Tuple[list[int], list[str]]
+        List of intervals in minutes and corresponding interval labels like "0-15min", "15-30min", etc.
     """
-    return [f"{i*15}-{(i+1)*15}min" 
+    intervals = list(range(0, max_lookback_length * 60 + 1, 15))
+    labels = [f"{i*15}-{(i+1)*15}min" 
             for i in range(int(max_lookback_length * 60 / 15))]
+
+    return intervals, labels

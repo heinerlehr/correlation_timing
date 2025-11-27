@@ -88,15 +88,16 @@ def run_analysis(
     logger.info(f"Found {len(anomalies)} unique anomalies after {earliest_time}\n")
     
     # 5. Create interval labels
-    interval_labels = create_interval_labels(max_lookback_length)
+    intervals, interval_labels = create_interval_labels(max_lookback_length)
     
     # 6. Run Hypothesis 1
     if run_hypothesis_1:
-        merged1, result1, types1 = analyze_hypothesis1(
+        merged1, types1 = analyze_hypothesis1(
             config=config,
             df=df,
             anomalies=anomalies,
             max_lookback_length=max_lookback_length,
+            intervals=intervals,
             interval_labels=interval_labels,
             correlations_ordered=correlations_ordered,
             number_of_plots=number_of_plots,
@@ -108,12 +109,13 @@ def run_analysis(
     
     # 7. Run Hypothesis 2
     if run_hypothesis_2:
-        merged2, result2, types2 = analyze_hypothesis2(
+        merged2, types2 = analyze_hypothesis2(
             config=config,
             df=df,
             anomalies=anomalies,
             max_lookback_length=max_lookback_length,
-            interval_labels=interval_labels,
+            intervals = intervals,
+            interval_labels= interval_labels,
             correlations_ordered=correlations_ordered,
             number_of_plots=number_of_plots,
             dataset_info=dataset_info,
@@ -129,14 +131,10 @@ def run_analysis(
     if run_hypothesis_1:
         results['hypothesis1'] = {
             'merged': merged1,
-            'result': result1,
             'types': types1,
         }
     if run_hypothesis_2:
         results['hypothesis2'] = {
             'merged': merged2,
-            'result': result2,
             'types': types2,
         }
-    
-    return results

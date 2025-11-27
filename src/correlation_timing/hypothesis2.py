@@ -11,7 +11,8 @@ from iconfig.iconfig import iConfig
 
 from loguru import logger
 
-from correlation_timing.utils import determine_type, determine_type_by_category, plot
+from correlation_timing.utils import determine_type, determine_type_by_category
+from correlation_timing.plotting import plot
 
 
 def get_timedifferences(
@@ -149,6 +150,7 @@ def analyze_hypothesis2(
     df: pd.DataFrame,
     anomalies: pd.DataFrame,
     max_lookback_length: int,
+    intervals: list[int],
     interval_labels: list[str],
     correlations_ordered: list,
     number_of_plots: int,
@@ -156,7 +158,7 @@ def analyze_hypothesis2(
     process_by_category: bool = True,
     fit_distributions: bool = True,
     cumulative: bool = False
-) -> Tuple[pd.DataFrame, pd.DataFrame, dict | None]:
+) -> Tuple[pd.DataFrame, dict | None]:
     """Analyze Hypothesis 2: Time differences for same correlation types.
     
     Parameters
@@ -190,31 +192,26 @@ def analyze_hypothesis2(
     logger.info("HYPOTHESIS 2: Time difference for same correlation types")
     
     if process_by_category:
-        result2 = get_timedifferences_per_category(df, anomalies, max_lookback_length)
+        merged = get_timedifferences_per_category(df, anomalies, max_lookback_length)
         # Categorize and count
-        result2['DelayInterval'] = pd.cut(
-            result2['Delay'],
+        merged['DelayInterval'] = pd.cut(
+            merged['Delay'],
             bins=range(0, max_lookback_length*60+1, 15),
             labels=interval_labels,
             right=False
         )
-        merged2 = result2.groupby(
-            ['Correlation', 'Category', 'DelayInterval']
-        ).size().reset_index(name='Count')
+
     else:
-        result2 = get_timedifferences(df, anomalies, max_lookback_length)
+        merged = get_timedifferences(df, anomalies, max_lookback_length)
         # Categorize and count
-        result2['DelayInterval'] = pd.cut(
-            result2['Delay'],
+        merged['DelayInterval'] = pd.cut(
+            merged['Delay'],
             bins=range(0, max_lookback_length*60+1, 15),
             labels=interval_labels,
             right=False
         )
-        merged2 = result2.groupby(
-            ['Correlation', 'DelayInterval']
-        ).size().reset_index(name='Count')
     
-    logger.info(f"Found {len(result2)} correlation occurrences")
+    logger.info(f"Found {len(merged)} correlation occurrences")
     
     # Fit distributions if requested
     types = None
@@ -222,22 +219,20 @@ def analyze_hypothesis2(
         if process_by_category:
             types = determine_type_by_category(
                 correlations=correlations_ordered,
-                corr_data=result2
+                corr_data=merged
             )
         else:
             types = determine_type(
                 correlations=correlations_ordered,
-                corr_data=result2
+                corr_data=merged
             )
     
     # Plot results
     fn = config('hypothesis_2.fn', default='hypothesis_2.png')
     max_lookback_length = config('max_lookback_length', default=4)
-    save = config.get('save_types', default=False)
     plot(
-        config=config,
         number_of_plots=number_of_plots,
-        result=result2,
+        result=merged,
         df=df,
         correlations=correlations_ordered,
         dataset_info=dataset_info,
@@ -246,7 +241,8 @@ def analyze_hypothesis2(
         cumulative=cumulative,
         fn = fn,
         max_lookback_length=max_lookback_length,
-        save = save,
+        intervals = intervals,
+        interval_labels=interval_labels,
     )
     
-    return result2, merged2, types
+    return merged, types

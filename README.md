@@ -1,6 +1,6 @@
 # Correlation Timing Analysis
 
-A Python package for analyzing optimal time windows for identifying correlations between water consumption anomalies and potential causative factors in livestock farming operations.
+An app for analyzing optimal time windows for identifying correlations between water consumption anomalies and potential causative factors in livestock farming operations.
 
 ## Overview
 
@@ -78,7 +78,7 @@ python -m correlation_timing.main --help
 
 ```python
 from pathlib import Path
-from correlation_timing import run_analysis
+from correlation_timing.analysis import run_analysis
 
 # Run complete analysis
 results = run_analysis(
@@ -99,25 +99,28 @@ h2_merged = results['hypothesis2']['merged']
 ### Using Individual Components
 
 ```python
-from correlation_timing import (
-    load_data,
-    prepare_anomalies,
-    analyze_hypothesis1,
-    analyze_hypothesis2
-)
+from correlation_timing.data_preparation import load_data, prepare_anomalies, create_interval_labels, get_dataset_info
+from correlation_timing.hypothesis1 import analyze_hypothesis1
+from correlation_timing.hypothesis2 import analyze_hypothesis2
 
 # Load and prepare data
 df = load_data(Path("/path/to/data"))
 anomalies, earliest_time = prepare_anomalies(df, max_lookback_length=4)
 
+interval_labels = create_interval_labels(4)
+info = get_dataset_info(df)
+correlations = info['correlations']
+number_of_plots = 20
+
 # Run specific hypothesis
-merged, result, types = analyze_hypothesis1(
+result, types = analyze_hypothesis1(
+    config=None,
     df=df,
     anomalies=anomalies,
     max_lookback_length=4,
     interval_labels=interval_labels,
     correlations_ordered=correlations,
-    number_of_plots=20,
+    number_of_plots=number_of_plots,
     dataset_info=info,
     fit_distributions=True
 )
@@ -174,6 +177,7 @@ Distribution fitting runs in parallel using `ProcessPoolExecutor`:
 - Default: 10 worker processes
 - Configurable via `max_workers` parameter
 - Automatically handles pickling of data and results
+- Each mixture fit uses multiple random restarts for robustness
 
 ## Configuration
 
@@ -223,12 +227,12 @@ Plots are organized by correlation type and category (if enabled).
     'hypothesis1': {
         'merged': DataFrame,  # Raw delay data
         'result': DataFrame,  # Aggregated counts
-        'types': dict         # Fitted distributions
+        'types': TypeList         # Fitted distributions
     },
     'hypothesis2': {
         'merged': DataFrame,
         'result': DataFrame,
-        'types': dict
+        'types': TypeList
     }
 }
 ```
