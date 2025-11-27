@@ -33,6 +33,9 @@ def load_data(srcdir: Path) -> pd.DataFrame:
                          'ShedId', 'ShedName', 'Correlation', 'Category']]
             df = pd.concat([df, t_df], ignore_index=True)
     
+    if df.empty:
+        raise ValueError("No data loaded from JSON files in the specified directory.")
+    
     df = df.sort_values(by='LocalTime')
     df = df.reset_index(drop=True)
     

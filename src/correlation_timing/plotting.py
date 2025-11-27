@@ -81,8 +81,6 @@ def plot_mixture(data:pd.DataFrame, result: Result, intervals: list[int], interv
     ax.plot(bin_centers, percent_mix, 'k--', lw=3, marker='^', label='Mixture')
     ax.legend(loc='upper right')
 
-    
-
     if cumulative:
         # Add cumulative line on secondary axis
         ax2 = ax.twinx()
@@ -264,7 +262,7 @@ def plot(
             fontsize=16, fontweight='bold'
         )
 
-        axs = axs.flatten() if rows > 1 else [axs]
+        axs = axs.flatten() if rows > 1 else axs
 
         j=0
         for corr in correlations:

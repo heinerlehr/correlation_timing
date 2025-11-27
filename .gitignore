@@ -18,8 +18,7 @@ inference/
 models/
 inputs/
 outputs/
-outputs_processed/
-outputs_errors/
+outputs_*/
 process/
 process_errors/
 processed_files/

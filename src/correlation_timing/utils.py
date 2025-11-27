@@ -34,7 +34,7 @@ class TypesCategory(BaseModel):
 
 class Types(BaseModel):
     correlation: str = Field(..., description="Correlation name")
-    results: dict[str, Result | None] = Field(..., description="Mapping of category to Result or None if no data")
+    result: Result | None = Field(None, description="Fitted result or None if no data")
 
 class TypeList(BaseModel):
     types: list[TypesCategory|Types] = Field(..., description="List of TypesCategory instances")
@@ -288,20 +288,17 @@ def save_types(types: TypeList, fn:str="types.json") -> bool:
 
 def _process_correlation_wrapper(args):
     """Wrapper for unpacking args in map."""
-    return process_single_correlation(*args)
-
-
-def _process_correlation_category_wrapper(args):
-    """Wrapper for unpacking args in map."""
-    return process_single_correlation_category(*args)
-
-
+    try:
+        return process_single_correlation(*args)
+    except Exception as e:
+        logger.error(f"Error processing correlation {args[0]}: {e}")
+        return args[0], None
+    
 def process_single_correlation(correlation, corr_data):
     """Process a single correlation."""
     delays = corr_data[corr_data['Correlation'] == correlation]['Delay']
     result = find_best_fit(delays)
     return correlation, result
-
 
 def determine_type(
     correlations: list, 
@@ -339,7 +336,8 @@ def determine_type(
         results = executor.map(_process_correlation_wrapper, tasks)
     
     for correlation, result in results:
-        ret.append(Types(correlation=correlation, result=result))
+        if result is not None:
+            ret.append(Types(correlation=correlation, result=result))
    
     tpl = TypeList(types=ret)
 
@@ -349,6 +347,13 @@ def determine_type(
 
     return tpl
 
+def _process_correlation_category_wrapper(args):
+    """Wrapper for unpacking args in map."""
+    try:
+        return process_single_correlation_category(*args)
+    except Exception as e:
+        logger.error(f"Error processing correlation-category {args[0]}, {args[2]}: {e}")
+        return args[0], args[2], None
 
 def process_single_correlation_category(correlation, corr_data, category):
     """Process a single correlation-category combination."""
@@ -362,7 +367,7 @@ def process_single_correlation_category(correlation, corr_data, category):
     else:
         result = find_best_fit(delays)
         return correlation, category, result
-
+    
 def determine_type_by_category(
     correlations: list, 
     corr_data: pd.DataFrame,
@@ -410,7 +415,8 @@ def determine_type_by_category(
     
     # Organize results
     for correlation, category, result in results:
-        ret.append(TypesCategory(correlation=correlation, category=category, result=result))
+        if result is not None:
+            ret.append(TypesCategory(correlation=correlation, category=category, result=result))
     
     tpl = TypeList(types=ret)
 
