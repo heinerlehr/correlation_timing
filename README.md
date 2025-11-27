@@ -61,17 +61,17 @@ Core dependencies include:
 
 ```bash
 # Basic usage
-python -m ct.main /path/to/data/directory
+uv run -m ct /path/to/data/directory
 
 # With custom options
-python -m ct.main /path/to/data/directory \
+uv run -m ct /path/to/data/directory \
     --max-lookback 6 \
     --no-category \
     --skip-h1 \
     --cumulative
 
 # See all options
-python -m ct.main --help
+uv run -m ct --help
 ```
 
 ### As a Python Module
