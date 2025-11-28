@@ -250,3 +250,4 @@ Plots are organized by correlation type and category (if enabled).
   - Mixture distribution fitting
   - Parallel processing support
   - Comprehensive visualization
+  - Simple not for production 
