@@ -7,6 +7,8 @@ import orjson
 import pandas as pd
 import numpy as np
 
+from iconfig.iconfig import iConfig
+
 def load_data(srcdir: Path) -> pd.DataFrame:
     """Load JSON data files and combine into a single DataFrame.
     
@@ -76,6 +78,13 @@ def get_dataset_info(df: pd.DataFrame) -> dict:
         'n_anomalies': len(anomalyids),
     }
 
+def initial_cleaning(df: pd.DataFrame, config: iConfig):
+
+    acceptable_categories = config('categories', default=['Increased Water', 'Decreased Water'])
+    # Make sure only those categories are in the data
+    df = df[df['Category'].isin(acceptable_categories)]
+
+    return df
 
 def order_correlations_by_pairs(correlations: list | np.ndarray) -> Tuple[int, list]:
     """Order correlations by pairing Increased/Decreased variants.
@@ -124,7 +133,8 @@ def order_correlations_by_pairs(correlations: list | np.ndarray) -> Tuple[int, l
 
 def order_correlations_by_category(
     correlations: list | np.ndarray, 
-    df: pd.DataFrame
+    df: pd.DataFrame,
+    n_categories: int
 ) -> Tuple[int, list]:
     """Order correlations by category presence.
     
@@ -143,7 +153,7 @@ def order_correlations_by_category(
     pairs = []
     singles = []
     categories = df['Category'].unique()
-    assert len(categories) == 2
+    assert len(categories) == n_categories
 
     for correlation in correlations:
         if len(df[df['Correlation'] == correlation]['Category'].unique()) == 2:
@@ -180,7 +190,7 @@ def prepare_anomalies(
     
     # Find all unique anomalies for each shed at least max_lookback_length after start
     anomalies = df.groupby(
-        by=['ShedId', 'AnomalyId', 'Category']
+        by=['ShedId', 'AnomalyId', 'Category'], sort=False
     ).agg({'LocalTime': 'min'}).reset_index()
     anomalies = anomalies[anomalies['LocalTime'] > earliest_time]
     

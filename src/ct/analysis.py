@@ -12,6 +12,7 @@ from ct.data_preparation import (
     order_correlations_by_category,
     prepare_anomalies,
     create_interval_labels,
+    initial_cleaning
 )
 from ct.hypothesis1 import analyze_hypothesis1
 from ct.hypothesis2 import analyze_hypothesis2
@@ -60,8 +61,12 @@ def run_analysis(
     logger.info("Loading data...")
     df = load_data(srcdir)
     logger.info(f"Loaded {len(df)} records\n")
+
+    # 2. Basic cleaning
+    df = initial_cleaning(df=df, config=config)
+    logger.info(f"After cleaning {len(df)} records\n")
     
-    # 2. Get dataset info
+    # 3. Get dataset info
     dataset_info = get_dataset_info(df)
     logger.info("Dataset contains:")
     logger.info(f"  - {dataset_info['n_correlations']} unique correlations")
@@ -72,9 +77,11 @@ def run_analysis(
     
     # 3. Order correlations
     if process_by_category:
+        n_categories = len(config('categories', default=['Increased Water', 'Decreased Water']))
         number_of_plots, correlations_ordered = order_correlations_by_category(
             correlations=dataset_info['correlations'],
-            df=df
+            df=df,
+            n_categories = n_categories
         )
     else:
         number_of_plots, correlations_ordered = order_correlations_by_pairs(
