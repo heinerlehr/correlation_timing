@@ -16,8 +16,8 @@ from loguru import logger
 from ct.utils import Result, TypeList
 
 
-def plot_mixture(data:pd.DataFrame, result: Result, intervals: list[int], interval_labels: list[str], 
-                 cumulative:bool=False, ax: Axes | None = None) -> Axes | Figure:
+def plot_mixture(data:pd.DataFrame, result: Result | None, intervals: list[int], interval_labels: list[str], 
+                 cumulative:bool=False, ax: Axes | None = None) -> Figure | Axes:
     """Plot data histogram with fitted mixture overlay.
     
     Parameters
@@ -36,11 +36,15 @@ def plot_mixture(data:pd.DataFrame, result: Result, intervals: list[int], interv
     Axes or Figure
         The axes if provided, otherwise the figure
     """
+    if not result:
+        raise ValueError("Result cannot be None")
     D1 = {'expon': expon, 'weibull_min': weibull_min, 'lognorm': lognorm}[result.dist1]
     D2 = {'expon': expon, 'weibull_min': weibull_min, 'lognorm': lognorm}[result.dist2]
-    
+
     if not ax:
         fig, ax = plt.subplots(figsize=(12, 5))
+    else:
+        fig = ax.figure
 
     # Calculate percentage and cumulative percentage
     grouped_results = data.groupby('DelayInterval').size().reset_index(name='Count')
@@ -119,7 +123,8 @@ def plot_mixture(data:pd.DataFrame, result: Result, intervals: list[int], interv
         colLabels=["Parameter", "Value"],
         cellLoc='left',
         loc='lower right',
-        bbox=[left, bottom, width, height]  # [left, bottom, width, height]
+        # [left, bottom, width, height]
+        bbox=[left, bottom, width, height] # type: ignore
     )
     table.auto_set_font_size(False)
     table.set_fontsize(10)
@@ -140,7 +145,7 @@ def plot_mixture(data:pd.DataFrame, result: Result, intervals: list[int], interv
     ax.grid(alpha=0.3)
 
     if not ax:
-        return fig
+        return fig # type: ignore
     else:
         return ax
 
@@ -213,7 +218,7 @@ def plot(
     intervals: list[int],
     interval_labels: list[str],
     process_by_category: bool = True,
-    types: TypeList | None = None,
+    types: TypeList | dict[str, Result] | None = None,
     cumulative: bool = True,
     fn: str|Path|None = None,
     max_lookback_length:int=4,
@@ -275,8 +280,8 @@ def plot(
                     (df['Correlation'] == corr) & 
                     (df['Category'] == categories[0])
                 ])
-                plot_subset(ax=axs[j], subset=subset, n_sample=n_sample, corr=corr, 
-                            types=types, category=categories[0], max_lookback_length=max_lookback_length,
+                plot_subset(ax=axs[j], subset=subset, n_sample=n_sample, corr=corr,                         # type: ignore
+                            types=types, category=categories[0], max_lookback_length=max_lookback_length,   # type: ignore
                         cumulative=cumulative, intervals=intervals, interval_labels=interval_labels)
                 j += 1
                 
@@ -288,13 +293,13 @@ def plot(
                     (df['Correlation'] == corr) & 
                     (df['Category'] == categories[1])
                 ])
-                plot_subset(ax=axs[j], subset=subset, n_sample=n_sample, corr=corr, types=types, category=categories[1], 
+                plot_subset(ax=axs[j], subset=subset, n_sample=n_sample, corr=corr, types=types, category=categories[1], # type: ignore
                             cumulative=cumulative, intervals=intervals, interval_labels=interval_labels)
                 j += 1
             else:
                 n_sample = len(df[df['Correlation'] == corr])
                 subset = result[result['Correlation'] == corr].copy()
-                plot_subset(ax=axs[j], subset=subset, n_sample=n_sample, corr=corr, types=types, cumulative=cumulative,
+                plot_subset(ax=axs[j], subset=subset, n_sample=n_sample, corr=corr, types=types, cumulative=cumulative, # type: ignore
                         intervals=intervals, interval_labels=interval_labels)
                 j += 1
         

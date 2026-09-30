@@ -1,253 +1,180 @@
 # Correlation Timing Analysis
 
-An app for analyzing optimal time windows for identifying correlations between water consumption anomalies and potential causative factors in livestock farming operations.
+An advanced statistical analysis tool for optimizing temporal detection windows in livestock farming operations. This project analyzes historical anomaly-correlation data to determine data-driven, optimal lookback windows for identifying correlations between water consumption anomalies and potential causative factors.
+
+**📖 For detailed documentation, see [README_DETAILED.md](README_DETAILED.md)**
 
 ## Overview
 
-This package analyzes historical anomaly-correlation data to determine optimal lookback windows for different types of correlations. Currently, Marvin (the monitoring system) uses fixed time windows (1h for poultry, 2h for pigs) when identifying factors correlated with water consumption anomalies. This analysis helps determine individual, data-driven lookback windows per correlation type.
+### Problem Statement
 
-## Objective
+In agricultural monitoring systems like Marvin, when water consumption anomalies occur, the system needs to identify potential causative factors. Currently, fixed time windows are used:
+- **Poultry**: 1-hour lookback window
+- **Pigs**: 2-hour lookback window
 
-The primary goal is to answer: **What is the optimal time window to look back for each type of correlation when a water anomaly occurs?**
+These fixed windows are not necessarily optimal for all correlation types. Different factors may have different temporal patterns—some correlate within minutes, others take hours to manifest.
 
-### Key Questions
+### Objective
 
-1. **Hypothesis 1**: If we measure the time difference between an anomaly and all possible correlation factors, how frequently does another anomaly with that correlating factor occur in the past?
+**Determine the optimal, data-driven time window to look back for each type of correlation when a water anomaly occurs.**
 
-2. **Hypothesis 2**: If we measure the time difference for all correlating factors of an anomaly, how far back does the same correlating factor occur in other anomalies?
+This analysis uses mixture distribution fitting (exponential, Weibull, log-normal) to model temporal patterns and identify when past events are most likely to be causally related to detected anomalies.
 
-Both hypotheses use mixture distribution fitting (exponential, Weibull, log-normal) to model the temporal patterns of correlations.
+### Key Hypotheses
+
+1. **Hypothesis 1**: Time difference between anomalies and ALL possible correlation factors
+   - Analyzes how frequently each correlation type appears in the past
+   - Identifies typical time ranges for different correlation types
+
+2. **Hypothesis 2**: Time difference for specific correlating factors within the same anomaly
+   - Focuses on recurrence patterns of specific correlations
+   - Reveals how frequently specific factors repeat in the same shed
 
 ## Installation
 
 ### Prerequisites
 
-- Python 3.10 or higher
-- UV package manager (recommended) or pip
+- **Python**: 3.13 or higher
+- **Package Manager**: [UV](https://github.com/astral-sh/uv) (recommended) or pip
 
-### Install with UV (Recommended)
+### Quick Start
 
 ```bash
 # Clone the repository
 git clone https://github.com/heinerlehr/correlation_timing.git
 cd correlation_timing
 
-# Install in development mode
+# Install with UV (recommended)
+uv sync
+
+# Or install in development mode
 uv pip install -e .
 ```
 
-### Install with pip
+## How to obtain a list of correlation timings
 
+**NOTE**: Chickens and pigs should be run separately as the production systems are vastly different. The same goes very likely for broilers, breeders, and layers amongst
+poultry production and sows, piglets/weaners, and finishers in pig production.
+
+## Step 1: clean from old data
 ```bash
-pip install -e .
+rm outputs/*
+rm inputs/type*
 ```
 
-### Dependencies
+## Step 2: run the ct tool
+```bash
+# Run analysis on a data directory
+python -m ct --skip-h1 /path/to/data/directory
+```
+See below
 
-Core dependencies include:
-- `pandas` - Data manipulation
-- `numpy` - Numerical operations
-- `scipy` - Statistical distributions and optimization
-- `matplotlib` - Visualization
-- `seaborn` - Enhanced plotting
-- `pydantic` - Data validation
-- `orjson` - Fast JSON parsing
-- `loguru` - Logging
-- `iconfig` - Configuration management
+This creates a number of graphics in the outputs folder
+
+## Step 3: collect data from tool
+
+Each graphic details the correlation factor, the category if requested, the number of correlations of this type and the fits. Visual inspection of the fits is relevant. Most of the time the major component should be selected but sometimes the fit is better to the minority component. The correct parameter to collect is the "scale".
+
 
 ## Usage
 
-### Command Line Interface
+### Command Line
+
+The primary way to run the analysis is via command line:
 
 ```bash
-# Basic usage
-uv run -m ct /path/to/data/directory
+# Run analysis on a data directory
+python -m ct /path/to/data/directory
 
-# With custom options
-uv run -m ct /path/to/data/directory \
-    --max-lookback 6 \
-    --no-category \
-    --skip-h1 \
-    --cumulative
-
-# See all options
-uv run -m ct --help
+# Show available options
+python -m ct -h
 ```
 
-### As a Python Module
+**Required argument:**
+- `srcdir` - Directory containing JSON anomaly/correlation data files
 
-```python
-from pathlib import Path
-from ct.analysis import run_analysis
+**Options:**
+- `-h, --help` - Show help message and all available options
+- `--max-lookback HOURS` - Maximum lookback window in hours (default: 4)
+- `--no-category` - Do not process by category (default: process by category)
+- `--skip-h1` - Skip Hypothesis 1 analysis (default: run H1)
+- `--skip-h2` - Skip Hypothesis 2 analysis (default: run H2)
+- `--no-fit` - Do not fit distributions (default: fit distributions)
+- `--cumulative` - Show cumulative plots (default: off)
 
-# Run complete analysis
-results = run_analysis(
-    srcdir=Path("/path/to/data"),
-    max_lookback_length=4,  # hours
-    process_by_category=True,
-    run_hypothesis_1=True,
-    run_hypothesis_2=True,
-    fit_distributions=True,
-    cumulative=False
-)
+Configuration can also be customized via `config/config.yaml`. See [README_DETAILED.md](README_DETAILED.md#configuration) for details.
 
-# Access results
-h1_types = results['hypothesis1']['types']
-h2_merged = results['hypothesis2']['merged']
+### Jupyter Notebooks
+
+Two example notebooks are included:
+
+1. **Farm-specific-correlations.ipynb** - Comprehensive correlation analysis
+   - DBSCAN clustering
+   - Exponential distribution fitting
+   - Statistical significance testing
+   - Production visualizations
+
+```bash
+jupyter notebook notebooks/Farm-specific-correlations.ipynb
 ```
 
-### Using Individual Components
+## Core Features
 
-```python
-from ct.data_preparation import load_data, prepare_anomalies, create_interval_labels, get_dataset_info
-from ct.hypothesis1 import analyze_hypothesis1
-from ct.hypothesis2 import analyze_hypothesis2
+### Data Processing
+- ✅ Loads JSON anomaly-correlation data
+- ✅ Filters by category and time window
+- ✅ Automatic datetime parsing
+- ✅ Vectorized delay calculations
 
-# Load and prepare data
-df = load_data(Path("/path/to/data"))
-anomalies, earliest_time = prepare_anomalies(df, max_lookback_length=4)
+### Analysis
+- ✅ Hypothesis 1: Time to all correlation types
+- ✅ Hypothesis 2: Recurrence of specific correlations
+- ✅ Category-based segmentation
+- ✅ Configurable lookback windows
 
-interval_labels = create_interval_labels(4)
-info = get_dataset_info(df)
-correlations = info['correlations']
-number_of_plots = 20
+### Statistical Modeling
+- ✅ Mixture distribution fitting
+- ✅ Three distribution types (Exponential, Weibull, Log-normal)
+- ✅ AIC/BIC model selection
+- ✅ Parallel processing (10 workers default)
 
-# Run specific hypothesis
-result, types = analyze_hypothesis1(
-    config=None,
-    df=df,
-    anomalies=anomalies,
-    max_lookback_length=4,
-    interval_labels=interval_labels,
-    correlations_ordered=correlations,
-    number_of_plots=number_of_plots,
-    dataset_info=info,
-    fit_distributions=True
-)
-```
-
-## Methodology
-
-### Data Structure
-
-The analysis expects JSON files with the following structure per record:
-```json
-{
-  "AnomalyId": "unique-id",
-  "LocalTime": "2024-01-01T12:00:00",
-  "FarmId": "farm-123",
-  "FarmName": "Farm Name",
-  "ShedId": "shed-456",
-  "ShedName": "Shed Name",
-  "Correlation": "Temperature Increased",
-  "Category": "Pigs"
-}
-```
-
-### Analysis Pipeline
-
-1. **Data Loading**: Reads JSON files and normalizes into pandas DataFrame
-2. **Data Preparation**: 
-   - Filters anomalies based on lookback window
-   - Orders correlations by type or category
-   - Creates time interval labels
-3. **Hypothesis Testing**:
-   - **H1**: Calculates delays from all possible correlations to anomalies
-   - **H2**: Calculates delays from same correlation types across anomalies
-4. **Distribution Fitting**: Fits mixture distributions (exponential + Weibull/log-normal) to delay data
-5. **Visualization**: Generates comprehensive plots showing delay distributions
-
-### Mixture Distribution Fitting
-
-The package fits two-component mixture distributions to model bimodal temporal patterns:
-
-- **Component 1**: Short-term effects (e.g., immediate responses)
-- **Component 2**: Long-term effects (e.g., delayed responses)
-
-Models tested:
-- Exponential + Weibull
-- Exponential + Log-normal
-- Weibull + Log-normal
-
-Best model selected using Bayesian Information Criterion (BIC).
-
-### Parallelization
-
-Distribution fitting runs in parallel using `ProcessPoolExecutor`:
-- Default: 10 worker processes
-- Configurable via `max_workers` parameter
-- Automatically handles pickling of data and results
-- Each mixture fit uses multiple random restarts for robustness
-
-## Configuration
-
-### Command Line Arguments
-
-| Argument | Description | Default |
-|----------|-------------|---------|
-| `srcdir` | Directory containing JSON data files | Required |
-| `--max-lookback` | Maximum lookback window (hours) | 4 |
-| `--no-category` | Don't process by category | False |
-| `--skip-h1` | Skip Hypothesis 1 analysis | False |
-| `--skip-h2` | Skip Hypothesis 2 analysis | False |
-| `--no-fit` | Don't fit distributions | False |
-| `--cumulative` | Show cumulative plots | False |
-
-### Python API Parameters
-
-```python
-run_analysis(
-    srcdir: Path,              # Data directory
-    max_lookback_length: int,  # Hours to look back
-    process_by_category: bool, # Separate by category
-    run_hypothesis_1: bool,    # Run H1 analysis
-    run_hypothesis_2: bool,    # Run H2 analysis
-    fit_distributions: bool,   # Fit mixture models
-    cumulative: bool           # Show cumulative %
-)
-```
+### Visualization
+- ✅ Frequency histograms
+- ✅ Cumulative distribution plots
+- ✅ Mixture component curves
+- ✅ Publication-quality output
 
 ## Output
 
-### Plots
+Analysis generates:
+- **PNG figures**: Delay distribution plots per correlation
+- **JSON results**: Fitted parameters and statistics
+- **DataFrames**: Raw and aggregated results for further analysis
 
-The analysis generates comprehensive visualizations showing:
-- Delay distribution histograms
-- Fitted mixture distribution curves
-- Individual component distributions
-- Cumulative percentage lines (optional)
-- 90% threshold markers
+All outputs use configurable file paths via `config.yaml`.
 
-Plots are organized by correlation type and category (if enabled).
+## Testing
 
-### Results Dictionary
+```bash
+# Run tests
+pytest
 
-```python
-{
-    'hypothesis1': {
-        'merged': DataFrame,  # Raw delay data
-        'result': DataFrame,  # Aggregated counts
-        'types': TypeList         # Fitted distributions
-    },
-    'hypothesis2': {
-        'merged': DataFrame,
-        'result': DataFrame,
-        'types': TypeList
-    }
-}
+# With coverage
+pytest --cov=src/ct tests/
+
+# Specific test
+pytest tests/test_utils.py::test_fit_mixture_simple_expon
 ```
 
+Tests cover:
+- Distribution fitting (exponential, Weibull, log-normal)
+- NaN handling
+- Parameter validation
+- Mixture component fitting
 
-## Authors
+---
 
-- Heiner Lehr
+**For more information**: See [README_DETAILED.md](README_DETAILED.md)  
+**Python**: 3.13+ required  
+**Status**: Active Development
 
-
-## Version History
-
-- **v0.1.0** (2024-11): Initial release
-  - Basic hypothesis testing framework
-  - Mixture distribution fitting
-  - Parallel processing support
-  - Comprehensive visualization
-  - Simple not for production 

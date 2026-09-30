@@ -29,7 +29,7 @@ def analyze_hypothesis1(
     process_by_category: bool = True,
     fit_distributions: bool = True,
     cumulative: bool = False
-) -> Tuple[pd.DataFrame, dict | None]:
+) -> tuple:
     """Analyze Hypothesis 1: Time differences to all correlation factors.
     
     Parameters
@@ -128,6 +128,7 @@ def analyze_hypothesis1(
     max_workers = config('max_workers', default=10)
     types = None
     if fit_distributions:
+        logger.info("Fitting mixture distributions...")
         if process_by_category:
             types = determine_type_by_category(
                 correlations=correlations_ordered, 
@@ -142,6 +143,7 @@ def analyze_hypothesis1(
             )
     
     # Plot results
+    logger.info("Generating plots...")
     fn = config('hypothesis_1.fn', default='hypothesis_1.png')
     max_lookback_length = config('max_lookback_length', default=4)
     plot(

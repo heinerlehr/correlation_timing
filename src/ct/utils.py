@@ -91,7 +91,7 @@ def fit_mixture_simple(data, dist1='expon', dist2='weibull_min') -> Result:
         p2 = D2.fit(data)
 
     # Parameter bounds
-    bounds = []
+    bounds: list[tuple[float | None, float | None]] = []
     # lambda bounds
     bounds.append((1e-3, 1-1e-3))
     # dist1 parameter bounds
@@ -219,18 +219,16 @@ def find_best_fit(delays: pd.Series) -> Result:
     ]
     for dist1, dist2 in models:
         result = fit_mixture_simple(delays, dist1=dist1, dist2=dist2)
-        if result.bic < best_bic:
+        if result.bic is not None and result.bic < best_bic:
             best_bic = result.bic
             best_result = result
-    return best_result
+    return best_result # type: ignore
 
 def load_types(correlations: list, fn:str) -> TypeList|None:
     """Load previously saved types from disk.
     
     Parameters
     ----------
-    config : iConfig
-        Configuration object
     correlations : list
         List of correlation names
         
@@ -240,7 +238,7 @@ def load_types(correlations: list, fn:str) -> TypeList|None:
         Dictionary mapping correlation name to Result
     """
 
-    if not (types_dir := Path(os.getenv('INPUTS'))).exists():
+    if not (types_dir := Path(os.getenv('INPUTS', "."))).exists():
         return None
     
     if not (types_dir / fn).exists():
@@ -275,7 +273,7 @@ def save_types(types: TypeList, fn:str="types.json") -> bool:
     dict[str, Result]
         Dictionary mapping correlation name to Result
     """
-    if not (types_dir := Path(os.getenv('INPUTS'))).exists():
+    if not (types_dir := Path(os.getenv('INPUTS', "."))).exists():
         types_dir.mkdir(parents=True, exist_ok=True)
     
     try:
@@ -305,7 +303,7 @@ def determine_type(
     corr_data: pd.DataFrame,
     max_workers: int = 10,
     save: bool = True
-) -> dict[str, Result]:
+) -> TypeList:
     """Determine best distribution type for each correlation.
     
     Parameters

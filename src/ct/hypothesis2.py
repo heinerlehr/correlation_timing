@@ -3,7 +3,7 @@
 If we measure the time difference for all correlating factors of an anomaly, 
 we would see how far back the same correlating factor occurs in other anomalies.
 """
-import math
+
 import pandas as pd
 from typing import Tuple
 
@@ -39,57 +39,13 @@ def get_timedifferences(
     pd.DataFrame
         DataFrame with AnomalyId, ShedId, Correlation, and Delay columns
     """
-    # result_list = []
-    # next_percentage = 0.1
-    
-    # df = df.sort_values("LocalTime") 
-
-    # for i, anomaly_row in anomalies.iterrows():
-    #     shed_id = anomaly_row['ShedId']
-    #     anomaly_id = anomaly_row['AnomalyId']
-    #     anomaly_time = anomaly_row['LocalTime']
-
-    #     if i / len(anomalies) >= next_percentage:
-    #         logger.info(f"{next_percentage:.0%} done.")
-    #         next_percentage += 0.1
-        
-    #     # Get all correlations associated with this specific anomaly
-    #     anomaly_correlations = df[
-    #         (df['ShedId'] == shed_id) & 
-    #         (df['AnomalyId'] == anomaly_id)
-    #     ]['Correlation'].unique()
-        
-    #     # For each correlation type associated with this anomaly
-    #     for corr_type in anomaly_correlations:
-    #         # Find previous occurrences of this SAME correlation type in the same shed
-    #         previous_same_corr = df[
-    #             (df['ShedId'] == shed_id) & 
-    #             (df['Correlation'] == corr_type) & 
-    #             (df['LocalTime'] < anomaly_time)
-    #         ]
-            
-    #         # Calculate time differences
-    #         for _, prev_row in previous_same_corr.iterrows():
-    #             delay_minutes = (anomaly_time - prev_row['LocalTime']).total_seconds() / 60
-                
-    #             # Only include if within lookback window
-    #             if delay_minutes <= max_lookback_length * 60:
-    #                 result_list.append({
-    #                     'AnomalyId': anomaly_id,
-    #                     'ShedId': shed_id,
-    #                     'Correlation': corr_type,
-    #                     'Delay': delay_minutes
-    #                 })
-
-    # return pd.DataFrame(result_list)
 
     # Make sure LocalTime is datetime
     df["LocalTime"] = pd.to_datetime(df["LocalTime"])
     anomalies["LocalTime"] = pd.to_datetime(anomalies["LocalTime"])
 
-    n = len(anomalies)
 
-    logger.info("First correlation")
+    logger.info("Computing time differences for same correlation types...")
     # Get unique correlations tied to anomalies (vectorized explode)
     anomaly_corr = (
         df.merge(anomalies[["ShedId", "AnomalyId", "LocalTime"]], 
@@ -99,7 +55,6 @@ def get_timedifferences(
         .rename(columns={"LocalTime_y": "anomaly_time"})
         .drop_duplicates()
     )
-    logger.info("Second correlation")
     # Self-join to find previous SAME correlation in same shed
     prev_corr = (
         df.loc[:, ["ShedId", "Correlation", "LocalTime"]]
@@ -108,7 +63,6 @@ def get_timedifferences(
             how="inner", 
             suffixes=("_prev", "_anom"))
     )
-    logger.info("Delay calculation")
     # Vectorised delay computation
     prev_corr["Delay"] = (
         prev_corr["anomaly_time"] - prev_corr["LocalTime_prev"]
@@ -117,7 +71,6 @@ def get_timedifferences(
     # Filter:
     # 1. Only past events
     # 2. Only within lookback window in minutes
-    logger.info("Filter by lookback")
     lookback_minutes = max_lookback_length * 60
     result = prev_corr.query("Delay > 0 and Delay <= @lookback_minutes")
 
@@ -125,7 +78,6 @@ def get_timedifferences(
     result = result.loc[:, ["AnomalyId", "ShedId", "Correlation", "Delay"]]
 
     # Optional safeguard if empty
-    logger.info("Done")
     return result
 
 
@@ -143,7 +95,7 @@ def get_timedifferences_per_category(
     categories = anomalies["Category"].unique()
     assert len(categories) == 2
 
-    logger.info("First correlation")
+    logger.info("Computing time differences per category...")
     # 1. Create anomaly/correlation mappings in one pass
     # We only need correlations tied to anomalies, so we inner-join on anomaly keys
     anomaly_corr = (
@@ -158,7 +110,6 @@ def get_timedifferences_per_category(
         .drop_duplicates()
     )
 
-    logger.info("Second correlation")
     # 2. Self-join df with anomaly_corr on correlation + shed + category
     prev = (
         df.loc[:, ["ShedId", "Category", "Correlation", "LocalTime"]]
@@ -166,7 +117,6 @@ def get_timedifferences_per_category(
         .merge(anomaly_corr, on=["ShedId", "Category", "Correlation"], how="inner")
     )
 
-    logger.info("Delay calculation")
     # 3. Vectorised delay computation (minutes)
     prev["Delay"] = (prev["anomaly_time"] - prev["prev_time"]).dt.total_seconds() / 60
 
@@ -174,7 +124,6 @@ def get_timedifferences_per_category(
     lookback_minutes = max_lookback_length * 60
     result = prev.query("Delay > 0 and Delay <= @lookback_minutes")
 
-    logger.info("Done")
     # 5. Select final columns
     return result.loc[:, ["AnomalyId", "ShedId", "Correlation", "Category", "Delay"]]
 
@@ -193,7 +142,7 @@ def analyze_hypothesis2(
     process_by_category: bool = True,
     fit_distributions: bool = True,
     cumulative: bool = False
-) -> Tuple[pd.DataFrame, dict | None]:
+) -> tuple:
     """Analyze Hypothesis 2: Time differences for same correlation types.
     
     Parameters
@@ -251,6 +200,7 @@ def analyze_hypothesis2(
     # Fit distributions if requested
     types = None
     if fit_distributions:
+        logger.info("Fitting mixture distributions...")
         if process_by_category:
             types = determine_type_by_category(
                 correlations=correlations_ordered,
@@ -263,6 +213,7 @@ def analyze_hypothesis2(
             )
     
     # Plot results
+    logger.info("Generating plots...")
     fn = config('hypothesis_2.fn', default='hypothesis_2.png')
     max_lookback_length = config('max_lookback_length', default=4)
     plot(

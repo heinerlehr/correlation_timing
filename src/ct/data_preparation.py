@@ -27,7 +27,7 @@ def load_data(srcdir: Path) -> pd.DataFrame:
     df = pd.DataFrame()
     
     for f in files:
-        with open(f, 'r') as infile:
+        with open(f, 'r', encoding='utf-8-sig') as infile:
             data = orjson.loads(infile.read())
             t_df = pd.json_normalize(data)
             t_df['LocalTime'] = pd.to_datetime(t_df['LocalTime'])  # type:ignore
@@ -82,7 +82,7 @@ def initial_cleaning(df: pd.DataFrame, config: iConfig):
 
     acceptable_categories = config('categories', default=['Increased Water', 'Decreased Water'])
     # Make sure only those categories are in the data
-    df = df[df['Category'].isin(acceptable_categories)]
+    df = df[df['Category'].isin(acceptable_categories)] # type: ignore
 
     return df
 
@@ -104,6 +104,7 @@ def order_correlations_by_pairs(correlations: list | np.ndarray) -> Tuple[int, l
 
     special_pairs = [('Sunset', 'Sunrise'), ('Lights On', 'Lights Off')]
 
+    other = None
     for correlation in correlations:
         if correlation.endswith('Increased'):
             cat_name = correlation.split('Increased')[0]
@@ -194,7 +195,7 @@ def prepare_anomalies(
     ).agg({'LocalTime': 'min'}).reset_index()
     anomalies = anomalies[anomalies['LocalTime'] > earliest_time]
     
-    return anomalies, earliest_time
+    return anomalies, earliest_time # type: ignore
 
 def create_interval_labels(max_lookback_length: int) -> Tuple[list[int], list[str]]:
     """Create time interval labels for categorization.

@@ -95,10 +95,17 @@ def run_analysis(
     logger.info(f"Found {len(anomalies)} unique anomalies after {earliest_time}\n")
     
     # 5. Create interval labels
+    logger.info("Creating interval labels...")
     intervals, interval_labels = create_interval_labels(max_lookback_length)
     
+    merged1 = None
+    types1 = None
+    merged2 = None
+    types2 = None
+
     # 6. Run Hypothesis 1
     if run_hypothesis_1:
+        logger.info("\n=== HYPOTHESIS 1 ===")
         merged1, types1 = analyze_hypothesis1(
             config=config,
             df=df,
@@ -116,6 +123,7 @@ def run_analysis(
     
     # 7. Run Hypothesis 2
     if run_hypothesis_2:
+        logger.info("\n=== HYPOTHESIS 2 ===")
         merged2, types2 = analyze_hypothesis2(
             config=config,
             df=df,
@@ -131,7 +139,7 @@ def run_analysis(
             cumulative=cumulative,
         )
     
-    logger.info("ANALYSIS COMPLETE")
+    logger.info("\n✓ ANALYSIS COMPLETE")
     
     # Return results for further analysis if needed
     results = {}
